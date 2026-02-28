@@ -465,8 +465,39 @@
                 const res = await fetch('/api/recommend-dishes', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ ingredients: fridgeIngredients }) });
                 const data = await res.json();
                 document.getElementById('recList').innerHTML = data.data.recommendations.map(dish => {
-                    const keyword = dish.image_keywords || (dish.name + " food");
-                    return `<div class="col-md-6"><div class="card h-100 shadow-sm border-success" style="cursor:pointer;" onclick="selectRecDish('${dish.name}')"><img src="https://image.pollinations.ai/prompt/${encodeURIComponent(keyword)}?nologo=true&width=400&height=200" class="card-img-top" style="height:150px; object-fit:cover;"><div class="card-body text-center"><h5 class="fw-bold text-success">${dish.name}</h5><p class="small text-muted">${dish.description}</p></div></div></div>`;
+// --- IMPROVED GRANULAR MAPPING ---
+// --- UNIVERSAL MAPPING LOGIC ---
+const lowerDish = dish.name.toLowerCase();
+const dishImages = {
+    "burger": "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=80",
+    "meatball": "https://images.unsplash.com/photo-1529042410759-befb1204b468?auto=format&fit=crop&w=800&q=80",
+    "taco": "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?auto=format&fit=crop&w=800&q=80",
+    "fry": "https://images.unsplash.com/photo-1512058560366-9bb2913635d7?auto=format&fit=crop&w=800&q=80",
+    "steak": "https://images.unsplash.com/photo-1600891964599-f61ba0e24092?auto=format&fit=crop&w=800&q=80",
+    "chicken": "https://images.unsplash.com/photo-1532550907401-a500c9a57435?auto=format&fit=crop&w=800&q=80",
+    "salmon": "https://images.unsplash.com/photo-1467003909585-2f8a72700288?auto=format&fit=crop&w=800&q=80",
+    "salad": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80",
+    "beef": "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=80"
+};
+
+let finalRecUrl = "";
+let foundMatch = false;
+const priorityKeys = ["burger", "meatball", "taco", "fry", "steak", "chicken", "salmon", "salad", "beef"];
+
+for (let key of priorityKeys) {
+    if (lowerDish.includes(key)) {
+        finalRecUrl = dishImages[key];
+        foundMatch = true;
+        break;
+    }
+}
+
+if (!foundMatch) {
+    const cleanRec = dish.name.replace(/[^a-zA-Z0-9 ]/g, "");
+    finalRecUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(cleanRec + " food")}?width=400&height=200&nologo=true`;
+}
+
+return `<div class="col-md-6"><div class="card h-100 shadow-sm border-success" style="cursor:pointer;" onclick="selectRecDish('${dish.name}')"><img src="${finalRecUrl}" class="card-img-top" style="height:150px; object-fit:cover;" onerror="this.src='https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=800&q=80'"><div class="card-body text-center"><h5 class="fw-bold text-success">${dish.name}</h5><p class="small text-muted">${dish.description}</p></div></div></div>`;
                 }).join('');
                 showScreen('screen-recommendations');
             } catch(e) { alert("Recommendation Failed"); } 
@@ -549,8 +580,29 @@ if (!foundStatic) {
                 } else {
                     list.innerHTML = [...globalHistory].reverse().map(item => {
                         const r = item.content;
-                        const keyword = r.image_keywords || r.title;
-                        return `<div class="col-md-6" onclick="viewHistoryRecipe('${item.id}')" style="cursor:pointer;"><div class="card h-100 shadow-sm border-0"><img src="https://image.pollinations.ai/prompt/${encodeURIComponent(keyword)}?nologo=true&width=400&height=300" class="card-img-top" style="height:150px; object-fit:cover; border-radius: 12px 12px 0 0;"><div class="card-body py-3"><h6 class="fw-bold mb-1 text-dark">${r.title}</h6><small class="badge bg-danger">${r.calories ? r.calories + ' kcal' : 'Custom'}</small></div></div></div>`;
+// --- STABLE MAPPING FOR HISTORY PREVIEW ---
+const lowerTitle = r.title.toLowerCase();
+const dishImages = {
+    "chicken": "https://images.unsplash.com/photo-1532550907401-a500c9a57435?auto=format&fit=crop&w=800&q=80",
+    "salmon": "https://images.unsplash.com/photo-1467003909585-2f8a72700288?auto=format&fit=crop&w=800&q=80",
+    "salad": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80"
+};
+
+let finalUrl = "";
+let found = false;
+for (let key in dishImages) {
+    if (lowerTitle.includes(key)) {
+        finalUrl = dishImages[key];
+        found = true;
+        break;
+    }
+}
+if (!found) {
+    const clean = r.title.replace(/[^a-zA-Z0-9 ]/g, "");
+    finalUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(clean + " food")}?width=400&height=300`;
+}
+
+return `<div class="col-md-6" onclick="viewHistoryRecipe('${item.id}')" style="cursor:pointer;"><div class="card h-100 shadow-sm border-0"><img src="${finalUrl}" class="card-img-top" style="height:150px; object-fit:cover; border-radius: 12px 12px 0 0;"><div class="card-body py-3"><h6 class="fw-bold mb-1 text-dark">${r.title}</h6><small class="badge bg-danger">${r.calories ? r.calories + ' kcal' : 'Custom'}</small></div></div></div>`;
                     }).join('');
                 }
                 showScreen('screen-profile');
@@ -571,8 +623,28 @@ if (!foundStatic) {
                 if(r.modification_note) { document.getElementById('resNote').innerText = r.modification_note; document.getElementById('resNote').style.display='block';}
                 document.getElementById('resIng').innerHTML = r.ingredients.map(i => `<li class="list-group-item">🥕 ${i}</li>`).join('');
                 document.getElementById('resStep').innerHTML = r.steps.map(s => `<li class="mb-2">${s}</li>`).join('');
-                document.getElementById('resImg').src = `https://image.pollinations.ai/prompt/${encodeURIComponent(r.image_keywords || r.title)}?nologo=true&width=800&height=400`;
-                document.getElementById('loadingOverlay').style.display = 'none';
+// --- STABLE MAPPING FOR HISTORY DETAIL ---
+const lowerTitleDetail = r.title.toLowerCase();
+const dishImagesDetail = {
+    "chicken": "https://images.unsplash.com/photo-1532550907401-a500c9a57435?auto=format&fit=crop&w=800&q=80",
+    "salmon": "https://images.unsplash.com/photo-1467003909585-2f8a72700288?auto=format&fit=crop&w=800&q=80",
+    "salad": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80"
+};
+
+let finalLargeUrl = "";
+let foundLarge = false;
+for (let key in dishImagesDetail) {
+    if (lowerTitleDetail.includes(key)) {
+        finalLargeUrl = dishImagesDetail[key];
+        foundLarge = true;
+        break;
+    }
+}
+if (!foundLarge) {
+    const cleanDetail = r.title.replace(/[^a-zA-Z0-9 ]/g, "");
+    finalLargeUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(cleanDetail + " gourmet food")}?width=800&height=400`;
+}
+document.getElementById('resImg').src = finalLargeUrl;                document.getElementById('loadingOverlay').style.display = 'none';
                 document.getElementById('resultContent').style.display = 'block';
             }, 500);
         }
