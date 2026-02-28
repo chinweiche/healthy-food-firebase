@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Cooking Assistant</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #F7F9FC; color: #2D3748; }
+        .navbar { margin-bottom: 30px; }
+        #videoElement { width: 100%; border-radius: 10px; border: 3px solid #333; background: #000; }
+        .ai-overlay { background: rgba(0,0,0,0.8); color: #0f0; padding: 15px; border-radius: 5px; font-family: monospace; }
+        .recipe-box { background: #fff; border: 2px solid #28a745; padding: 20px; border-radius: 10px; margin-top: 20px; display: none; }
+        .custom-card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <span class="navbar-brand fw-bold">Healthy Food Life</span>
+            <div class="navbar-nav ms-auto flex-row gap-3">
+                <a class="nav-link text-white" href="/">Home</a>
+                <a class="nav-link text-white" href="/calculator">Calorie Calc</a>
+                <a class="nav-link text-warning fw-bold" href="/ai-cooking">AI Cooking</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="row custom-card mx-auto">
+            <div class="col-md-7">
+                <h4 class="fw-bold mb-3">📸 Point Camera at Food</h4>
+                <div class="position-relative">
+                    <video id="videoElement" autoplay playsinline></video>
+                    <canvas id="canvas" style="display:none;"></canvas>
+                </div>
+                <div class="mt-3 text-center">
+                    <button id="cameraBtn" class="btn btn-primary" onclick="toggleCamera()">📷 Open Camera</button>
+                    <button id="analyzeBtn" class="btn btn-warning" onclick="analyzeFrame()" disabled>👁️ Detect Ingredients</button>
+                </div>
+
+                <div id="recipeResult" class="recipe-box">
+                    <img id="recipeImg" style="width: 100%; height: 250px; object-fit: cover; border-radius: 10px; margin-bottom: 15px; display: none;">
+                    <h3 id="recipeTitle" class="text-success"></h3>
+                    <p><strong>Calories:</strong> <span id="recipeCal"></span></p>
+                    <h5>Steps:</h5>
+                    <ul id="recipeSteps"></ul>
+                </div>
+            </div>
+
+            <div class="col-md-5">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-header bg-success text-white fw-bold">AI Chef Monitor</div>
+                    <div class="card-body bg-light">
+                        <h5 class="fw-bold">Detected Ingredients:</h5>
+                        <ul id="ingredient-list" class="list-group mb-4">
+                            <li class="list-group-item text-muted">Waiting for scan...</li>
+                        </ul>
+                        
+                        <button id="genRecipeBtn" class="btn btn-success w-100 fw-bold py-2" onclick="generateRecipe()" disabled>
+                            👨‍🍳 Generate Recipe
+                        </button>
+
+                        <div class="mt-4 ai-overlay">
+                            <strong>Status:</strong> <span id="ai-status">Camera is off.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById("videoElement");
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext('2d');
+        const cameraBtn = document.getElementById("cameraBtn");
+        const analyzeBtn = document.getElementById("analyzeBtn");
+        
+        let currentIngredients = [];
+        let cameraStream = null;
+
+        // --- CAMERA TOGGLE LOGIC ---
+        function toggleCamera() {
+            if (cameraStream) {
+                stopCamera();
+            } else {
+                startCamera();
+            }
+        }
+
+        function startCamera() {
+            if (navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ video: true })
+                    .then(stream => {
+                        cameraStream = stream; 
+                        video.srcObject = stream;
+                        
+                        document.getElementById("ai-status").innerText = "Camera Active";
+                        analyzeBtn.disabled = false;
+                        
+                        cameraBtn.innerText = "⏹️ Stop Camera";
+                        cameraBtn.classList.replace("btn-primary", "btn-danger");
+                    })
+                    .catch(err => alert("Camera error: " + err));
+            }
+        }
+
+        function stopCamera() {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop()); 
+                video.srcObject = null;
+                cameraStream = null;
+                
+                document.getElementById("ai-status").innerText = "Camera is off.";
+                analyzeBtn.disabled = true;
+                
+                cameraBtn.innerText = "📷 Open Camera";
+                cameraBtn.classList.replace("btn-danger", "btn-primary");
+            }
+        }
+
+        // --- AI LOGIC ---
+        function analyzeFrame() {
+            document.getElementById("ai-status").innerText = "Analyzing Vision...";
+            analyzeBtn.disabled = true;
+            
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0);
+            const dataUrl = canvas.toDataURL('image/jpeg');
+
+            fetch('/api/analyze-frame', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: dataUrl })
+            })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById("ai-status").innerText = "Ingredients Found";
+                const list = document.getElementById("ingredient-list");
+                list.innerHTML = "";
+                
+                currentIngredients = data.ingredients || []; 
+
+                currentIngredients.forEach(ing => {
+                    list.innerHTML += `<li class="list-group-item list-group-item-success fw-bold">${ing}</li>`;
+                });
+
+                document.getElementById("genRecipeBtn").disabled = false;
+            })
+            .catch(err => {
+                document.getElementById("ai-status").innerText = "Error analyzing frame.";
+            })
+            .finally(() => {
+                analyzeBtn.disabled = false;
+            });
+        }
+
+        function generateRecipe() {
+            document.getElementById("ai-status").innerText = "Chef is thinking...";
+            document.getElementById("genRecipeBtn").disabled = true;
+            
+            fetch('/api/generate-recipe-from-ingredients', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ingredients: currentIngredients })
+            })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById("ai-status").innerText = "Recipe Ready!";
+                const r = data.recipe;
+                
+document.getElementById("recipeResult").style.display = "block";
+                document.getElementById("recipeTitle").innerText = r.title;
+                document.getElementById("recipeCal").innerText = r.calories;
+                
+// --- STABLE IMAGE MAPPING ---
+const generatedImg = document.getElementById("recipeImg");
+generatedImg.style.display = "block";
+
+if (r.title.toLowerCase().includes("chicken")) {
+    generatedImg.src = "https://images.unsplash.com/photo-1532550907401-a500c9a57435?auto=format&fit=crop&w=800&q=80";
+} else if (r.title.toLowerCase().includes("salmon")) {
+    generatedImg.src = "https://images.unsplash.com/photo-1467003909585-2f8a72700288?auto=format&fit=crop&w=800&q=80";
+} else {
+    // Default dynamic generation for unknown dishes
+    generatedImg.src = `https://image.pollinations.ai/prompt/${encodeURIComponent(r.title + " food")}?width=600&height=300`;
+}
+                
+                const stepsList = document.getElementById("recipeSteps");
+                stepsList.innerHTML = "";
+                r.steps.forEach(step => {
+                    stepsList.innerHTML += `<li>${step}</li>`;
+                });
+            })
+            .catch(err => {
+                document.getElementById("ai-status").innerText = "Failed to generate recipe.";
+            })
+            .finally(() => {
+                document.getElementById("genRecipeBtn").disabled = false;
+            });
+        }
+
+        // Auto stop camera if user closes tab or navigates away
+        window.addEventListener('beforeunload', stopCamera);
+    </script>
+</body>
+</html>

@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Healthy Food Life</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root { --primary: #FF6B6B; --primary-light: #FFF0F0; --bg: #F7F9FC; --text: #2D3748; }
+        body { font-family: 'Poppins', sans-serif; background: var(--bg); color: var(--text); padding-bottom: 50px; }
+        
+        .navbar { margin-bottom: 0 !important; }
+        .hero { background: #4CAF50; color: white; padding: 60px 0; text-align: center; }
+        .setup-card { color: #333; text-align: left; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); }
+        .feature-card { transition: 0.3s; border: none; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .feature-card:hover { transform: translateY(-5px); box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+
+        .screen { display: none; animation: fadeIn 0.4s; }
+        .active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .custom-card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); margin-top: 30px; }
+        .btn-custom { padding: 12px 25px; border-radius: 10px; font-weight: 600; width: 100%; transition: 0.2s; }
+        
+        /* Visual Settings Grid Styles */
+        .grid-options { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; margin-bottom: 25px; }
+        .section-title { font-size: 16px; color: #718096; margin: 20px 0 10px; font-weight: 600; border-bottom: 2px solid #EDF2F7; padding-bottom: 5px; }
+        .checkbox-card { position: relative; cursor: pointer; }
+        .checkbox-card input { position: absolute; opacity: 0; cursor: pointer; }
+        .checkbox-card .box { background: #fff; border: 2px solid #E2E8F0; border-radius: 16px; padding: 15px; text-align: center; transition: 0.2s all; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100px; }
+        .checkbox-card .emoji { font-size: 32px; margin-bottom: 10px; display: block; }
+        .checkbox-card input:checked + .box { border-color: #4CAF50; background: #e8f5e9; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2); }
+        .checkbox-card input:checked + .box .label { color: #4CAF50; font-weight: 600; }
+
+        .ingredient-tag { background: #e9ecef; padding: 6px 12px; border-radius: 20px; display: inline-block; margin: 4px; font-size: 0.9em; font-weight: 500; }
+        .recipe-img { width: 100%; height: 300px; object-fit: cover; border-radius: 16px; margin-bottom: 20px; }
+        .ing-item { background: white; border: 1px solid #E2E8F0; padding: 10px; border-radius: 10px; text-align: center; cursor: pointer; font-size: 14px; }
+        .ing-item.selected { background: #4CAF50; color: white; border-color: #4CAF50; }
+        .ingredient-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; max-height: 250px; overflow-y: auto; margin-bottom: 20px; padding-right: 5px; }
+        
+        #loadingOverlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 10; flex-direction: column; align-items: center; justify-content: center; text-align: center; border-radius: 20px;}
+        .pulse { animation: pulse 1.5s infinite ease-in-out; font-size: 40px; margin-bottom: 10px; display: block;}
+        @keyframes pulse { 0% { transform: scale(0.9); } 50% { transform: scale(1.1); } 100% { transform: scale(0.9); } }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="#" onclick="showScreen('screen-home')">Healthy Food Life</a>
+            <div class="navbar-nav ms-auto flex-row gap-3">
+                <a class="nav-link text-white" href="/calculator">Calorie Calc</a>
+                <a class="nav-link text-white" href="/ai-cooking">AI Cooking</a>
+                <a class="nav-link text-warning fw-bold" href="#" onclick="gotoProfile()">Profile & History</a>
+            </div>
+        </div>
+    </nav>
+
+    <div id="screen-home" class="screen active">
+        <div class="hero">
+            <div class="container">
+                <h1 class="fw-bold mb-3">Welcome to Healthy Food Life</h1>
+                <p class="fs-5 mb-4">Tell us what you want to cook before starting.</p>
+                
+                <div class="card setup-card p-4 mx-auto" style="max-width: 600px;">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h3 class="text-success fw-bold m-0">Cooking Setup</h3>
+                        <button class="btn btn-sm btn-outline-dark" onclick="gotoSettings()">⚙️ Settings</button>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Dish Name</label>
+                        <input type="text" id="homeDishName" class="form-control form-control-lg" placeholder="e.g. Grilled Chicken">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Equipment</label>
+                        <input type="text" id="homeEquipment" class="form-control" placeholder="Configured in Settings" value="<%= settings.equipment || '' %>">
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Health Goal</label>
+                            <select id="homeHealthGoal" class="form-select">
+                                <option value="Low Calorie" <%= settings.healthGoal === 'Low Calorie' ? 'selected' : '' %>>Low Calorie</option>
+                                <option value="High Protein" <%= settings.healthGoal === 'High Protein' ? 'selected' : '' %>>High Protein</option>
+                                <option value="Balanced Diet" <%= settings.healthGoal === 'Balanced Diet' ? 'selected' : '' %>>Balanced Diet</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Allergies / Dislikes</label>
+                            <input type="text" id="homeAllergies" class="form-control" placeholder="Configured in Settings" value="<%= settings.userAllergies || '' %>">
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-success btn-lg w-100 fw-bold mt-2" onclick="saveAndCookDirectly()">✨ Start Cooking Directly</button>
+                    
+                    <div class="text-center mt-3 mb-3 text-muted fw-bold">--- OR ---</div>
+                    
+                    <button class="btn btn-dark w-100 py-2" onclick="showScreen('screen-clear-fridge')">📸 Clear My Fridge (AI Camera)</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="container mt-5">
+            <h2 class="text-center mb-4 fw-bold">Today's Healthy Suggestions</h2>
+            <div class="row">
+                <% if(suggestions && suggestions.length > 0) { %>
+                    <% suggestions.forEach(function(food) { %>
+                        <div class="col-md-4 mb-4">
+                            <div class="card feature-card h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title text-success fw-bold"><%= food.name %></h5>
+                                    <p class="card-text mb-2">Calories: <strong><%= food.calories %></strong> | <span class="badge bg-primary"><%= food.benefit %></span></p>
+                                    <div class="mt-3 p-3 bg-light rounded">
+                                        <h6 class="text-muted border-bottom pb-2">Shopping List:</h6>
+                                        <ul class="list-unstyled small mb-0">
+                                            <% food.ingredients.forEach(function(item) { %> <li>• <%= item %></li> <% }); %>
+                                        </ul>
+                                    </div>
+                                    <button class="btn btn-sm btn-outline-success mt-3 w-100 fw-bold" onclick="document.getElementById('homeDishName').value = '<%= food.name %>'; window.scrollTo(0,0);">Select this Dish</button>
+                                </div>
+                            </div>
+                        </div>
+                    <% }); %>
+                <% } %>
+            </div>
+        </div>
+    </div>
+
+    <div id="screen-settings" class="screen">
+        <div class="container custom-card" style="max-width: 800px;">
+            <h2 class="fw-bold mb-4 text-center">⚙️ Kitchen Settings</h2>
+            
+            <div id="settingsEquipList"></div> 
+            
+            <div id="settingsAllergyList"></div> 
+            
+            <div class="mt-4">
+                <label class="form-label fw-bold">Other Custom Inputs (Text only):</label>
+                <div class="d-flex gap-2 mb-2">
+                    <input type="text" id="customInput" class="form-control" placeholder="e.g. Lamb, Bitter Gourd, Air Fryer">
+                    <button class="btn btn-dark" onclick="addCustomItem()" style="white-space: nowrap;">Add Item</button>
+                </div>
+                <div id="customTagsContainer" class="d-flex flex-wrap gap-2"></div>
+            </div>
+            
+            <div class="d-flex gap-2 mt-5">
+                <button class="btn btn-secondary w-50 py-2 fw-bold" onclick="showScreen('screen-home')">Cancel</button>
+                <button class="btn btn-success w-50 py-2 fw-bold" onclick="saveVisualSettings()">Save Configuration</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="screen-clear-fridge" class="screen">
+        <div class="container custom-card" style="max-width: 700px;">
+            <h3 class="fw-bold mb-4 text-center">🧊 What's in your fridge?</h3>
+            <div style="background: #000; padding: 10px; border-radius: 12px; margin-bottom: 20px; position: relative;">
+                <video id="videoElement" autoplay playsinline style="width: 100%; border-radius: 8px;"></video>
+                <canvas id="canvas" style="display:none;"></canvas>
+            </div>
+            <div class="d-flex gap-2 mb-3">
+                <button id="cameraBtn" class="btn btn-primary btn-custom" onclick="toggleCamera()">📷 Turn on Camera</button>
+                <button id="analyzeBtn" class="btn btn-warning btn-custom text-dark" onclick="analyzeFrame()" disabled>🔍 Detect Ingredients</button>
+            </div>
+            <p class="text-center text-primary fw-bold" id="visionStatus">Camera is off.</p>
+            <div class="mt-4 border-top pt-3">
+                <h5 class="fw-bold mb-3">Selected Ingredients:</h5>
+                <div id="selectedZone" class="p-3 border rounded bg-light mb-3 d-flex flex-wrap gap-2 min-vh-25"><span class="text-muted small">None selected...</span></div>
+                <h5 class="fw-bold mb-2">Manual Selection:</h5>
+                <div class="ingredient-grid" id="ingredientGrid"></div>
+            </div>
+            <div class="d-flex gap-2 mt-4">
+                <button class="btn btn-secondary btn-custom" onclick="showScreen('screen-home')">Back Home</button>
+                <button id="btn-recommend" class="btn btn-success btn-custom" onclick="getRecommendations()">✨ AI Recommend Dishes</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="screen-recommendations" class="screen">
+        <div class="container" style="max-width: 800px; margin-top: 30px;">
+            <h3 class="fw-bold mb-4 text-center">AI Recommended Dishes</h3>
+            <div id="recList" class="row g-4"></div> 
+            <div class="text-center mt-5">
+                <button class="btn btn-secondary px-5 py-2 fw-bold" onclick="showScreen('screen-clear-fridge')">Back to Fridge</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="screen-calories" class="screen">
+        <div class="container custom-card text-center" style="max-width: 500px;">
+            <h3 class="fw-bold mb-3">Calorie Goal?</h3>
+            <p class="text-muted mb-4">AI will adjust oil and ingredients to meet your target.</p>
+            <input type="number" id="calInput" class="form-control form-control-lg mb-4 text-center" placeholder="e.g. 500 (Optional)">
+            <button class="btn btn-success btn-custom mb-3 fs-5" onclick="startGeneration()">👨‍🍳 Start Cooking!</button>
+            <button class="btn btn-link text-muted text-decoration-none" onclick="startGeneration(true)">Skip Calorie Limit</button>
+        </div>
+    </div>
+
+    <div id="screen-result" class="screen">
+        <div class="container custom-card" style="max-width: 800px; position:relative; min-height: 400px;">
+            <div id="loadingOverlay"> 
+                <span class="pulse">🤖</span><h2 class="fw-bold text-success">AI is cooking...</h2><p class="text-muted">Generating your customized recipe and images...</p>
+            </div>
+            <div id="resultContent" style="display:none;">
+                <img id="resImg" class="recipe-img">
+                <h2 id="resTitle" class="fw-bold mb-3 text-success"></h2>
+                <span id="resCalWrapper" class="badge bg-danger fs-6 p-2 mb-3" style="display:none;">🔥 <span id="resCal"></span> kcal</span>
+                <div id="resNote" class="alert alert-warning fw-bold" style="display:none;"></div>
+                <div class="mt-4">
+                    <h4 class="fw-bold border-bottom pb-2">🛒 Ingredients</h4><ul id="resIng" class="mb-4 list-group list-group-flush"></ul>
+                    <h4 class="fw-bold border-bottom pb-2 mt-4">👩‍🍳 Steps</h4><ol id="resStep" class="ps-3" style="line-height: 1.8;"></ol>
+                </div>
+
+                <div id="feedbackSection" style="margin-top: 30px; margin-bottom: 20px; border-top: 2px dashed #ccc; padding-top: 20px; text-align: center;">
+                    <h4 class="fw-bold">How was this recipe?</h4>
+                    <input type="hidden" id="feedbackRating" value="5">
+                    <div class="fs-3 mb-2">
+                        <span style="cursor:pointer;" onclick="setRating(1)">⭐</span>
+                        <span style="cursor:pointer;" onclick="setRating(2)">⭐</span>
+                        <span style="cursor:pointer;" onclick="setRating(3)">⭐</span>
+                        <span style="cursor:pointer;" onclick="setRating(4)">⭐</span>
+                        <span style="cursor:pointer;" onclick="setRating(5)">⭐</span>
+                    </div>
+                    <textarea id="feedbackComment" class="form-control mb-2" placeholder="Any comments or issues?" rows="2"></textarea>
+                    <button type="button" class="btn btn-warning fw-bold" onclick="submitFeedback()">Submit Feedback</button>
+                    <p id="feedbackMsg" class="mt-2 text-success fw-bold" style="display: none;">Thank you for your feedback!</p>
+                </div>
+
+                <button class="btn btn-dark w-100 py-3 mt-4 fw-bold fs-5" onclick="showScreen('screen-home')">Finish & Return Home</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="screen-profile" class="screen">
+        <div class="container custom-card" style="max-width: 800px;">
+            <h2 class="fw-bold text-center mb-4">👤 Master Chef Profile</h2>
+            <p class="text-center fs-5 mb-4">Recipes Generated: <strong id="profile-count" class="text-success fs-3">0</strong></p>
+            <hr class="my-4"><h4 class="fw-bold mb-3">📚 Collection History</h4>
+            <div id="historyList" class="row g-3" style="max-height: 500px; overflow-y: auto; padding-right: 10px;"></div>
+            <div class="d-flex gap-2 mt-5 pt-3 border-top">
+                <button class="btn btn-secondary w-50 py-2 fw-bold" onclick="showScreen('screen-home')">Back Home</button>
+                <button class="btn btn-danger w-50 py-2 fw-bold" onclick="clearHistory()">🗑️ Clear History</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Feedback Variables & Functions
+        let generationStartTime = 0;
+        let generationEndTime = 0;
+
+        function setRating(n) {
+            document.getElementById('feedbackRating').value = n;
+            alert(`You selected ${n} stars`); 
+        }
+
+        function submitFeedback() {
+            const rating = document.getElementById('feedbackRating').value;
+            const comments = document.getElementById('feedbackComment').value;
+            const latency = generationEndTime - generationStartTime;
+
+            fetch('/api/submit-feedback', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ rating, comments, latency })
+            })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('feedbackMsg').style.display = 'block';
+            });
+        }
+
+        let selectedDishName = "";
+        let fridgeIngredients = []; 
+        let globalHistory = [];
+        let cameraStream = null; 
+        let customItemsArray = [];
+        
+        const dbIngredients = ["Chicken Breast", "Beef", "Pork", "Salmon", "Egg", "Tofu", "Broccoli", "Tomato", "Potato", "Onion", "Garlic", "Rice", "Pasta", "Cheese", "Milk", "Mushroom", "Carrot", "Cabbage"];
+
+        // Data for Visual Settings
+        const visualEquipment = [ 
+            {title: "🍳 Common Kitchen Pots", type: "equipment", items: [{id: "Wok", name: "Wok", icon: "🍳"}, {id: "Frying Pan", name: "Frying Pan", icon: "🥘"}, {id: "Soup Pot", name: "Soup Pot", icon: "🍲"}, {id: "Clay Pot", name: "Clay Pot", icon: "🏺"}]}, 
+            {title: "⚡ Appliances", type: "equipment", items: [{id: "Rice Cooker", name: "Rice Cooker", icon: "🍚"}, {id: "Air Fryer", name: "Air Fryer", icon: "🌪️"}, {id: "Oven", name: "Oven", icon: "🔥"}, {id: "Microwave", name: "Microwave", icon: "⚡"}]} 
+        ];
+        const visualAllergies = [ 
+            {title: "🚫 Food Allergies / Dislikes", type: "allergy", items: [{id: "Peanuts", name: "Peanuts", icon: "🥜"}, {id: "Seafood", name: "Seafood", icon: "🦐"}, {id: "Dairy", name: "Dairy", icon: "🥛"}, {id: "Eggs", name: "Eggs", icon: "🥚"}, {id: "Gluten", name: "Gluten", icon: "🍞"}, {id: "Beef", name: "Beef", icon: "🐄"}, {id: "Pork", name: "Pork", icon: "🐖"}]} 
+        ];
+
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(el => { el.classList.remove('active'); });
+            document.getElementById(id).classList.add('active');
+            window.scrollTo(0,0);
+            
+            if(id === 'screen-clear-fridge') {
+                renderGrid();
+            } else {
+                if (cameraStream) stopCamera(); // Stop camera automatically
+            }
+        }
+
+        // --- VISUAL SETTINGS LOGIC ---
+        function renderVisualGrid(divId, groups) {
+            const div = document.getElementById(divId);
+            div.innerHTML = groups.map(group => `
+                <div class="section-title">${group.title}</div>
+                <div class="grid-options">
+                    ${group.items.map(item => `
+                        <label class="checkbox-card">
+                            <input type="checkbox" value="${item.id}" data-type="${group.type}">
+                            <div class="box"><span class="emoji">${item.icon}</span><span class="label">${item.name}</span></div>
+                        </label>
+                    `).join('')}
+                </div>
+            `).join('');
+        }
+
+        function gotoSettings() {
+            renderVisualGrid('settingsEquipList', visualEquipment);
+            renderVisualGrid('settingsAllergyList', visualAllergies);
+            customItemsArray = [];
+            renderCustomTags();
+            showScreen('screen-settings');
+        }
+
+        function addCustomItem() {
+            const val = document.getElementById('customInput').value.trim();
+            if (val && !customItemsArray.includes(val)) { 
+                customItemsArray.push(val); 
+                document.getElementById('customInput').value = ""; 
+                renderCustomTags(); 
+            }
+        }
+
+        function removeCustomItem(item) {
+            customItemsArray = customItemsArray.filter(i => i !== item);
+            renderCustomTags();
+        }
+
+        function renderCustomTags() {
+            document.getElementById('customTagsContainer').innerHTML = customItemsArray.map(item => `
+                <span class="ingredient-tag border border-dark">${item} <b style="cursor:pointer; margin-left:5px;" onclick="removeCustomItem('${item}')">&times;</b></span>
+            `).join('');
+        }
+
+        function saveVisualSettings() {
+            const selectedEquip = Array.from(document.querySelectorAll('input[data-type="equipment"]:checked')).map(cb => cb.value);
+            const selectedAllergy = Array.from(document.querySelectorAll('input[data-type="allergy"]:checked')).map(cb => cb.value);
+            
+            const finalEquipString = [...selectedEquip, ...customItemsArray].join(", ");
+            const finalAllergyString = selectedAllergy.join(", ");
+
+            document.getElementById('homeEquipment').value = finalEquipString;
+            document.getElementById('homeAllergies').value = finalAllergyString;
+
+            alert("Settings Configured!");
+            showScreen('screen-home');
+        }
+
+        // --- DIRECT COOKING ---
+        async function saveAndCookDirectly() {
+            const dishName = document.getElementById('homeDishName').value;
+            const equipment = document.getElementById('homeEquipment').value;
+            const healthGoal = document.getElementById('homeHealthGoal').value;
+            const allergies = document.getElementById('homeAllergies').value;
+
+            if (!dishName) return alert("Please enter a dish name first!");
+            
+            await fetch('/api/set-cooking-info', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ dishName, equipment, healthGoal, allergies })
+            });
+
+            selectedDishName = dishName;
+            fridgeIngredients = []; 
+            showScreen('screen-calories'); 
+        }
+
+        // --- LIVE CAMERA LOGIC ---
+        const video = document.getElementById("videoElement");
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext('2d');
+        const analyzeBtn = document.getElementById("analyzeBtn");
+        const cameraBtn = document.getElementById("cameraBtn");
+
+        function toggleCamera() {
+            if (cameraStream) stopCamera();
+            else startCamera();
+        }
+
+        function startCamera() {
+            if (navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ video: true })
+                    .then(function (stream) {
+                        cameraStream = stream; 
+                        video.srcObject = stream;
+                        document.getElementById("visionStatus").innerText = "Camera Active. Point at ingredients!";
+                        analyzeBtn.disabled = false;
+                        cameraBtn.innerText = "⏹️ Turn off Camera";
+                        cameraBtn.classList.replace("btn-primary", "btn-danger");
+                    })
+                    .catch(function (error) { alert("Could not access camera."); });
+            }
+        }
+
+        function stopCamera() {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop()); 
+                video.srcObject = null;
+                cameraStream = null;
+                document.getElementById("visionStatus").innerText = "Camera is off.";
+                analyzeBtn.disabled = true;
+                cameraBtn.innerText = "📷 Turn on Camera";
+                cameraBtn.classList.replace("btn-danger", "btn-primary");
+            }
+        }
+
+        function analyzeFrame() {
+            document.getElementById("visionStatus").innerText = "Analyzing Frame...";
+            analyzeBtn.disabled = true;
+            canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+            const dataUrl = canvas.toDataURL('image/jpeg');
+
+            fetch('/api/analyze-frame', { 
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ image: dataUrl }) 
+            })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById("visionStatus").innerText = "Ingredients Detected!";
+                if(data.ingredients) {
+                    data.ingredients.forEach(item => { if(!fridgeIngredients.includes(item)) fridgeIngredients.push(item); });
+                    updateSelectedDisplay();
+                }
+            })
+            .catch(err => { document.getElementById("visionStatus").innerText = "Error analyzing frame."; })
+            .finally(() => { analyzeBtn.disabled = false; });
+        }
+
+        // --- MANUAL INGREDIENTS ---
+        function renderGrid() {
+            document.getElementById('ingredientGrid').innerHTML = dbIngredients.map(item => `<div class="ing-item ${fridgeIngredients.includes(item) ? 'selected' : ''}" onclick="toggleIngredient('${item}')">${item}</div>`).join('');
+        }
+        function toggleIngredient(item) {
+            if (fridgeIngredients.includes(item)) fridgeIngredients = fridgeIngredients.filter(i => i !== item);
+            else fridgeIngredients.push(item);
+            renderGrid(); updateSelectedDisplay();
+        }
+        function updateSelectedDisplay() {
+            const zone = document.getElementById('selectedZone');
+            if (fridgeIngredients.length === 0) { zone.innerHTML = `<span class="text-muted small">None selected...</span>`; return; }
+            zone.innerHTML = fridgeIngredients.map(item => `<span class="ingredient-tag text-success border border-success">${item} <b style="cursor:pointer;" onclick="toggleIngredient('${item}')">&times;</b></span>`).join('');
+        }
+
+        // --- RECOMMENDATIONS ---
+        async function getRecommendations() {
+            if (fridgeIngredients.length === 0) return alert("Select or detect ingredients first!");
+            const btn = document.getElementById('btn-recommend'); 
+            btn.innerText = "Analyzing..."; btn.disabled = true;
+            
+            try {
+                const res = await fetch('/api/recommend-dishes', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ ingredients: fridgeIngredients }) });
+                const data = await res.json();
+                document.getElementById('recList').innerHTML = data.data.recommendations.map(dish => {
+                    const keyword = dish.image_keywords || (dish.name + " food");
+                    return `<div class="col-md-6"><div class="card h-100 shadow-sm border-success" style="cursor:pointer;" onclick="selectRecDish('${dish.name}')"><img src="https://image.pollinations.ai/prompt/${encodeURIComponent(keyword)}?nologo=true&width=400&height=200" class="card-img-top" style="height:150px; object-fit:cover;"><div class="card-body text-center"><h5 class="fw-bold text-success">${dish.name}</h5><p class="small text-muted">${dish.description}</p></div></div></div>`;
+                }).join('');
+                showScreen('screen-recommendations');
+            } catch(e) { alert("Recommendation Failed"); } 
+            finally { btn.innerText = "✨ AI Recommend Dishes"; btn.disabled = false; }
+        }
+        function selectRecDish(name) { selectedDishName = name; showScreen('screen-calories'); }
+
+        // --- GENERATION ---
+        async function startGeneration(skipCalories = false) {
+            const calories = skipCalories ? null : document.getElementById('calInput').value;
+            showScreen('screen-result'); 
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            document.getElementById('resultContent').style.display = 'none';
+
+            generationStartTime = Date.now(); // Start timer
+
+            try {
+                const res = await fetch('/api/generate-recipe', { 
+                    method: 'POST', headers: {'Content-Type': 'application/json'}, 
+                    body: JSON.stringify({ dishName: selectedDishName, calorieLimit: calories, fridgeIngredients: fridgeIngredients.join(", ") }) 
+                });
+                const result = await res.json();
+                const r = result.data;
+                
+                document.getElementById('resTitle').innerText = r.title;
+                if(r.calories > 0) { document.getElementById('resCal').innerText = r.calories; document.getElementById('resCalWrapper').style.display = 'inline-block'; } 
+                else { document.getElementById('resCalWrapper').style.display = 'none'; }
+                
+                if (r.modification_note) { document.getElementById('resNote').innerText = r.modification_note; document.getElementById('resNote').style.display = 'block'; } 
+                else { document.getElementById('resNote').style.display = 'none'; }
+                
+                document.getElementById('resIng').innerHTML = r.ingredients.map(i => `<li class="list-group-item">🥕 ${i}</li>`).join('');
+                document.getElementById('resStep').innerHTML = r.steps.map(s => `<li class="mb-2">${s}</li>`).join('');
+
+// Make the image prompt safer and shorter to prevent broken images
+// --- STABLE IMAGE MAPPING ---
+const imgElement = document.getElementById('resImg');
+imgElement.style.display = 'block'; 
+
+const lowerTitle = r.title.toLowerCase();
+const dishImages = {
+    "chicken": "https://images.unsplash.com/photo-1532550907401-a500c9a57435?auto=format&fit=crop&w=800&q=80",
+    "salmon": "https://images.unsplash.com/photo-1467003909585-2f8a72700288?auto=format&fit=crop&w=800&q=80",
+    "salad": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80"
+};
+
+let foundStatic = false;
+for (let key in dishImages) {
+    if (lowerTitle.includes(key)) {
+        imgElement.src = dishImages[key];
+        foundStatic = true;
+        break;
+    }
+}
+
+// Fallback to dynamic if no match found
+if (!foundStatic) {
+    const cleanTitle = r.title.replace(/[^a-zA-Z0-9 ]/g, "");
+    imgElement.src = `https://image.pollinations.ai/prompt/${encodeURIComponent(cleanTitle + " food")}?width=800&height=400`;
+}
+                
+                generationEndTime = Date.now(); // End timer
+                document.getElementById('feedbackMsg').style.display = 'none'; // Reset feedback message
+
+                document.getElementById('loadingOverlay').style.display = 'none';
+                document.getElementById('resultContent').style.display = 'block';
+            } catch (e) { alert("Generation Failed. Please try again."); showScreen('screen-home'); }
+        }
+
+        // --- PROFILE / HISTORY ---
+        async function gotoProfile() {
+            try {
+                const res = await fetch('/api/get-history');
+                const data = await res.json();
+                globalHistory = data.history || [];
+                document.getElementById('profile-count').innerText = globalHistory.length;
+                const list = document.getElementById('historyList');
+                if (globalHistory.length === 0) {
+                    list.innerHTML = `<p class="text-center text-muted w-100 my-4">No history found. Start cooking!</p>`;
+                } else {
+                    list.innerHTML = [...globalHistory].reverse().map(item => {
+                        const r = item.content;
+                        const keyword = r.image_keywords || r.title;
+                        return `<div class="col-md-6" onclick="viewHistoryRecipe('${item.id}')" style="cursor:pointer;"><div class="card h-100 shadow-sm border-0"><img src="https://image.pollinations.ai/prompt/${encodeURIComponent(keyword)}?nologo=true&width=400&height=300" class="card-img-top" style="height:150px; object-fit:cover; border-radius: 12px 12px 0 0;"><div class="card-body py-3"><h6 class="fw-bold mb-1 text-dark">${r.title}</h6><small class="badge bg-danger">${r.calories ? r.calories + ' kcal' : 'Custom'}</small></div></div></div>`;
+                    }).join('');
+                }
+                showScreen('screen-profile');
+            } catch(e) { console.error("Profile load error"); }
+        }
+
+        function viewHistoryRecipe(id) {
+            const item = globalHistory.find(h => h.id === id);
+            if(!item) return;
+            selectedDishName = item.content.title;
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            document.getElementById('resultContent').style.display = 'none';
+            showScreen('screen-result');
+            setTimeout(() => {
+                const r = item.content;
+                document.getElementById('resTitle').innerText = r.title;
+                if(r.calories) { document.getElementById('resCal').innerText = r.calories; document.getElementById('resCalWrapper').style.display = 'inline-block'; }
+                if(r.modification_note) { document.getElementById('resNote').innerText = r.modification_note; document.getElementById('resNote').style.display='block';}
+                document.getElementById('resIng').innerHTML = r.ingredients.map(i => `<li class="list-group-item">🥕 ${i}</li>`).join('');
+                document.getElementById('resStep').innerHTML = r.steps.map(s => `<li class="mb-2">${s}</li>`).join('');
+                document.getElementById('resImg').src = `https://image.pollinations.ai/prompt/${encodeURIComponent(r.image_keywords || r.title)}?nologo=true&width=800&height=400`;
+                document.getElementById('loadingOverlay').style.display = 'none';
+                document.getElementById('resultContent').style.display = 'block';
+            }, 500);
+        }
+
+        async function clearHistory() {
+            if(confirm("Are you sure you want to clear your recipe history?")) { await fetch('/api/clear-history', { method: 'DELETE' }); gotoProfile(); }
+        }
+    </script>
+</body>
+</html>
